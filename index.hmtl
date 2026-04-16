@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Realtime Staff Chat</title>
+</head>
+<body>
+
+<h2>Staff Chat (View or Send)</h2>
+
+<button onclick="login()">Login with Google</button>
+<p id="user"></p>
+
+<div id="chat" style="border:1px solid black; height:300px; overflow:auto;"></div>
+
+<input id="message" placeholder="Type message...">
+<button onclick="sendMessage()">Send</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCBRkLLKT0dSJeve1w7uUMKJmrKsvdmbA4",
+  authDomain: "apiasd-c7c8b.firebaseapp.com",
+  projectId: "apiasd-c7c8b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+let currentUser = null;
+
+// 🔒 Allowed emails
+const allowedEmails = ["o593oatman@pb.k12.mo.us"];
+
+const allowedEmails = ["tutgtagcopy@gmail.com"];
+
+window.login = async function() {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  currentUser = result.user;
+
+  document.getElementById("user").innerText =
+    "Logged in as: " + currentUser.email;
+}
+
+// 📤 Send message (ONLY allowed emails)
+window.sendMessage = async function() {
+  const msg = document.getElementById("message").value;
+
+  if (!currentUser) return alert("Login first!");
+
+  if (!allowedEmails.includes(currentUser.email)) {
+    return alert("You are VIEW ONLY.");
+  }
+
+  await addDoc(collection(db, "messages"), {
+    text: msg,
+    user: currentUser.email,
+    time: Date.now()
+  });
+
+  document.getElementById("message").value = "";
+}
+
+// 📡 Realtime listener
+const q = query(collection(db, "messages"), orderBy("time"));
+
+onSnapshot(q, (snapshot) => {
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    chat.innerHTML += `<p><b>${data.user}:</b> ${data.text}</p>`;
+  });
+
+  chat.scrollTop = chat.scrollHeight;
+});
+</script>
+
+</body>
+</html>
